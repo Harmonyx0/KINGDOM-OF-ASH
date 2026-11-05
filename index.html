@@ -2,79 +2,116 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KINGDOM OF ASH</title>
+<title>KINGDOM OF ASH - ROK Style</title>
 <style>
-body{background:#111;color:white;text-align:center;font-family:Arial;padding:15px}
-h1{color:orange;font-size:30px;margin:5px}
-#kingdom{font-size:60px;margin:10px;min-height:70px}
-#count{font-size:65px}
-.stats{background:#222;padding:10px;border-radius:12px;margin:10px}
-button{background:orange;color:white;border:none;padding:15px 20px;font-size:18px;border-radius:12px;margin:5px;width:90%}
-button.green{background:#2ecc71}
-button.blue{background:#3498db}
-button.purple{background:#9b59b6}
-.shop{background:#222;padding:12px;border-radius:12px;margin-top:10px}
+body{background:#0d1a0d;color:white;font-family:Arial;margin:0;padding:0;text-align:center}
+.topbar{background:#1a2a1a;display:flex;justify-content:space-around;padding:8px;font-size:13px;position:sticky;top:0;z-index:10}
+.topbar b{color:#f1c40f}
+.city{background:#2d4a22;padding:10px;min-height:340px;position:relative}
+.building{display:inline-block;background:#3a5a2a;border:2px solid #6a8a4a;border-radius:10px;padding:10px;margin:5px;width:90px;cursor:pointer}
+.building b{font-size:12px}
+.building .lv{color:#f1c40f;font-size:11px}
+.map{display:none;background:#1e2e1e;padding:10px;min-height:340px}
+.tile{display:inline-block;width:52px;height:52px;margin:2px;border-radius:8px;line-height:52px;font-size:24px;cursor:pointer;vertical-align:top}
+.my{background:#2ecc71}
+.enemy{background:#e74c3c}
+.res{background:#f39c12}
+.empty{background:#34495e}
+.fog{background:#222}
+.bottombar{background:#111;display:flex;position:fixed;bottom:0;left:0;right:0}
+.bottombar button{flex:1;background:#222;color:white;border:none;padding:15px;font-size:15px}
+.bottombar button.active{background:orange}
+button.action{background:orange;color:white;border:none;padding:12px 20px;border-radius:10px;margin:5px;font-size:15px}
+.card{background:#222;padding:12px;margin:10px;border-radius:12px;text-align:left}
 </style>
 </head>
 <body>
-<h1>🔥 KINGDOM OF ASH 🔥</h1>
-<div id="kingdom">🏚️</div>
-<p id="kingdomName">Ruined Land</p>
-
-<div id="count">0</div>
-<p>Ash Collected | Tap Power: <span id="tapPower">1</span></p>
-
-<button onclick="gather()">🔥 GATHER ASH (+<span id="tapPower2">1</span>)</button>
-
-<div class="stats">
-<p>🪵 Wood: <span id="wood">0</span> | 🪨 Stone: <span id="stone">0</span></p>
-<p>👷 Workers: <span id="workers">0</span> (+<span id="perSec">0</span>/sec)</p>
+<div class="topbar">
+<div>🌾 <b id="food">1000</b></div>
+<div>🪵 <b id="wood">1000</b></div>
+<div>🪨 <b id="stone">500</b></div>
+<div>🪙 <b id="gold">200</b></div>
+<div>⚡ <b id="power">0</b></div>
 </div>
 
-<div class="shop">
-<h3>🏪 SHOP</h3>
-<button onclick="buyWorker()">👷 Buy Worker - 10 Ash</button>
-<button class="green" onclick="buyTap()">⚡ Stronger Hands - 100 Ash (Tap +1)</button>
-<button class="blue" onclick="buyWood()">🪵 Buy Wood - 50 Ash</button>
-<button class="purple" onclick="buyStone()">🪨 Buy Stone - 100 Ash</button>
-<button onclick="build()">🏰 BUILD KINGDOM - 500 Ash</button>
-<button onclick="resetGame()" style="background:#555;font-size:14px;padding:10px">Reset Game</button>
+<div style="padding:5px">👑 KINGDOM OF ASH <span id="chName">| City Hall Lv.<span id="chLv">1</span></span></div>
+
+<!-- CITY VIEW -->
+<div id="cityView" class="city">
+<div style="font-size:40px">🏰</div>
+<p>Tap a building to UPGRADE</p>
+<div id="buildings"></div>
+<div class="card">
+<h3>⚔️ Train Troops</h3>
+<p>Troops: <b id="troops">0</b> | Marching: <span id="marching">None</span></p>
+<button class="action" onclick="train(1)">+1 Infantry (100 Food)</button>
+<button class="action" onclick="train(10)">+10 Infantry (1000 Food)</button>
+<button class="action" style="background:#2ecc71" onclick="trainArcher()">+1 Archer (100 Wood)</button>
+<p id="cityMsg" style="color:#f1c40f"></p>
 </div>
-<p id="msg" style="color:#f1c40f"></p>
+</div>
+
+<!-- MAP VIEW -->
+<div id="mapView" class="map">
+<p>🗺️ WORLD MAP - Tap a tile to Gather / Attack</p>
+<p>Your troops: <b id="troops2">0</b> | Selected: <span id="sel">None</span></p>
+<div id="mapGrid"></div>
+<p id="mapMsg" style="color:#f1c40f;min-height:20px"></p>
+<button class="action" onclick="returnTroops()">↩️ Recall Troops</button>
+</div>
+
+<div style="height:60px"></div>
+<div class="bottombar">
+<button id="btnCity" class="active" onclick="show('city')">🏰 City</button>
+<button id="btnMap" onclick="show('map')">🗺️ Map</button>
+<button onclick="showHelp()">❓ Help</button>
+</div>
 
 <script>
-let ash = parseInt(localStorage.getItem('ash')||0);
-let workers = parseInt(localStorage.getItem('workers')||0);
-let tap = parseInt(localStorage.getItem('tap')||1);
-let wood = parseInt(localStorage.getItem('wood')||0);
-let stone = parseInt(localStorage.getItem('stone')||0);
-let level = parseInt(localStorage.getItem('level')||0);
-
-function save(){localStorage.setItem('ash',ash);localStorage.setItem('workers',workers);localStorage.setItem('tap',tap);localStorage.setItem('wood',wood);localStorage.setItem('stone',stone);localStorage.setItem('level',level);}
-function update(){
-document.getElementById("count").innerText=ash;
-document.getElementById("workers").innerText=workers;
-document.getElementById("perSec").innerText=workers;
-document.getElementById("tapPower").innerText=tap;
-document.getElementById("tapPower2").innerText=tap;
-document.getElementById("wood").innerText=wood;
-document.getElementById("stone").innerText=stone;
-let k=document.getElementById("kingdom"); let n=document.getElementById("kingdomName");
-if(level==0){k.innerText="🏚️"; n.innerText="Ruined Land";}
-else if(level==1){k.innerText="🏚️🏠"; n.innerText="Small Village";}
-else if(level==2){k.innerText="🏠🏠🏰"; n.innerText="Growing Town";}
-else if(level>=3){k.innerText="🏰🏰🔥🏰"; n.innerText="KINGDOM OF ASH - REBUILT! 👑";}
+let R = JSON.parse(localStorage.getItem('koa_rok')||'{"food":1000,"wood":1000,"stone":500,"gold":200,"troops":0,"archers":0,"buildings":{"hall":1,"farm":1,"lumber":1,"quarry":1,"mine":1,"barracks":1}}');
+let marching = null;
+let mapData = [];
+// 6x6 map: 0 empty, 1 you, 2 barbarian, 3 food, 4 wood, 5 stone, 6 gold
+let layout = [
+[0,3,2,0,4,0],
+[5,0,0,2,0,6],
+[0,2,1,0,3,0],
+[4,0,0,0,2,5],
+[0,6,3,0,0,2],
+[2,0,4,5,0,3]
+];
+function save(){localStorage.setItem('koa_rok',JSON.stringify(R));}
+function cost(lv){return lv*500;}
+function renderCity(){
+let b=R.buildings;
+let html='';
+let defs=[['hall','🏰','City Hall'],['farm','🌾','Farm'],['lumber','🪵','Lumber Mill'],['quarry','🪨','Quarry'],['mine','🪙','Gold Mine'],['barracks','⚔️','Barracks']];
+defs.forEach(d=>{
+html+=`<div class="building" onclick="upgrade('${d[0]}')"><div style="font-size:28px">${d[1]}</div><b>${d[2]}</b><br><span class="lv">Lv.${b[d[0]]}</span><br><span style="font-size:11px">Up: ${cost(b[d[0]])} 🪵</span></div>`;
+});
+document.getElementById('buildings').innerHTML=html;
+document.getElementById('chLv').innerText=b.hall;
+document.getElementById('food').innerText=Math.floor(R.food);
+document.getElementById('wood').innerText=Math.floor(R.wood);
+document.getElementById('stone').innerText=Math.floor(R.stone);
+document.getElementById('gold').innerText=Math.floor(R.gold);
+document.getElementById('troops').innerText=R.troops+R.archers;
+document.getElementById('troops2').innerText=R.troops+R.archers;
+let power = b.hall*100 + b.farm*50 + b.barracks*80 + (R.troops+R.archers)*10;
+document.getElementById('power').innerText=power;
 save();
 }
-function gather(){ash+=tap; update();}
-function buyWorker(){if(ash>=10){ash-=10;workers++;update();}else alert("Need 10 Ash!");}
-function buyTap(){if(ash>=100){ash-=100;tap++;update();}else alert("Need 100 Ash!");}
-function buyWood(){if(ash>=50){ash-=50;wood+=10;update();document.getElementById("msg").innerText="Got +10 Wood!";}else alert("Need 50 Ash!");}
-function buyStone(){if(ash>=100){ash-=100;stone+=10;update();document.getElementById("msg").innerText="Got +10 Stone!";}else alert("Need 100 Ash!");}
-function build(){if(ash>=500){ash-=500;level++;update();document.getElementById("msg").innerText="KINGDOM UPGRADED! 🎉";}else alert("Need 500 Ash to Build!");}
-function resetGame(){if(confirm("Reset everything?")){ash=0;workers=0;tap=1;wood=0;stone=0;level=0;update();}}
-setInterval(function(){if(workers>0){ash+=workers;update();}},1000);
-update();
-</script>
-</body>
-</html>
+function upgrade(type){
+let lv=R.buildings[type]; let c=cost(lv);
+if(R.wood>=c){R.wood-=c; R.buildings[type]++; document.getElementById('cityMsg').innerText=type+' upgraded to Lv.'+R.buildings[type]+'!';}
+else{alert('Need '+c+' Wood! Build Lumber Mill higher to get more wood.');}
+renderCity(); renderMap();
+}
+function train(n){
+let c=n*100;
+if(R.food>=c){R.food-=c; R.troops+=n; document.getElementById('cityMsg').innerText='+'+n+' Infantry trained!';}
+else alert('Need '+c+' Food!');
+renderCity();
+}
+function trainArcher(){
+if(R.wood>=100){R.wood-=100; R.archers++; document.getElementById
